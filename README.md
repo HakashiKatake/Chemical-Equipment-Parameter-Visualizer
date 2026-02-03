@@ -242,20 +242,6 @@ cd backend
 python manage.py test equipment
 ```
 
-### Manual Testing Checklist
-
-- [ ] Register new user
-- [ ] Login with credentials
-- [ ] Upload valid CSV
-- [ ] Upload invalid CSV (missing column, empty field, non-numeric value)
-- [ ] View dataset list (should show last 5)
-- [ ] Select dataset and view analytics
-- [ ] Check summary statistics
-- [ ] View all three charts
-- [ ] Sort and filter data table
-- [ ] Download PDF report
-- [ ] Upload 6th dataset (oldest should be auto-deleted)
-
 ## Database Management
 
 ### Dataset Limit
