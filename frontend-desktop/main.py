@@ -11,13 +11,13 @@ from PyQt5.QtWidgets import (
     QFileDialog, QMessageBox, QListWidget, QTabWidget, QComboBox,
     QHeaderView, QStackedWidget
 )
-from PyQt5.QtCore import Qt, QThread, pyqtSignal
-from PyQt5.QtGui import QFont
+from PyQt5.QtCore import Qt, QThread, pyqtSignal, QTimer
+from PyQt5.QtGui import QFont, QPixmap, QImage
 import matplotlib
-matplotlib.use('Qt5Agg')
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
+matplotlib.use('Agg')  # Use non-interactive backend
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
+import io
 
 from api_client import APIClient
 
@@ -192,32 +192,37 @@ class LoginWindow(QWidget):
 
 
 class ChartWidget(QWidget):
-    """Widget for displaying matplotlib charts"""
+    """Widget for displaying matplotlib charts using QLabel"""
     
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.figure = Figure(figsize=(8, 6))
-        self.canvas = FigureCanvas(self.figure)
+        self.figure = Figure(figsize=(8, 6), dpi=100)
+        self.image_label = QLabel()
+        self.image_label.setAlignment(Qt.AlignCenter)
         
         layout = QVBoxLayout()
-        layout.addWidget(self.canvas)
+        layout.addWidget(self.image_label)
         self.setLayout(layout)
     
-    def closeEvent(self, event):
-        """Clean up matplotlib resources on close"""
+    def _update_image(self):
+        """Convert figure to QPixmap and display"""
         try:
-            if hasattr(self, 'figure'):
-                plt.close(self.figure)
-        except:
+            buf = io.BytesIO()
+            self.figure.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+            buf.seek(0)
+            
+            image = QImage()
+            image.loadFromData(buf.read())
+            pixmap = QPixmap.fromImage(image)
+            self.image_label.setPixmap(pixmap)
+            
+            buf.close()
+        except Exception:
             pass
-        super().closeEvent(event)
     
     def plot_histogram(self, histogram_data):
         """Plot flowrate histogram"""
         try:
-            if not self.canvas or not hasattr(self, 'figure'):
-                return
-            
             self.figure.clear()
             ax = self.figure.add_subplot(111)
             
@@ -234,17 +239,13 @@ class ChartWidget(QWidget):
             ax.grid(axis='y', alpha=0.3)
             
             self.figure.tight_layout()
-            self.canvas.draw_idle()
-        except RuntimeError:
-            # Canvas has been deleted, ignore
+            self._update_image()
+        except Exception:
             pass
     
     def plot_pie(self, type_distribution):
         """Plot type distribution pie chart"""
         try:
-            if not self.canvas or not hasattr(self, 'figure'):
-                return
-            
             self.figure.clear()
             ax = self.figure.add_subplot(111)
             
@@ -255,17 +256,13 @@ class ChartWidget(QWidget):
             ax.set_title('Equipment Type Distribution', fontweight='bold')
             
             self.figure.tight_layout()
-            self.canvas.draw_idle()
-        except RuntimeError:
-            # Canvas has been deleted, ignore
+            self._update_image()
+        except Exception:
             pass
     
     def plot_scatter(self, scatter_data, units):
         """Plot pressure vs temperature scatter"""
         try:
-            if not self.canvas or not hasattr(self, 'figure'):
-                return
-            
             self.figure.clear()
             ax = self.figure.add_subplot(111)
             
@@ -279,9 +276,8 @@ class ChartWidget(QWidget):
             ax.grid(True, alpha=0.3)
             
             self.figure.tight_layout()
-            self.canvas.draw_idle()
-        except RuntimeError:
-            # Canvas has been deleted, ignore
+            self._update_image()
+        except Exception:
             pass
 
 
@@ -685,20 +681,6 @@ Range: {summary['min_temperature']:.2f} - {summary['max_temperature']:.2f}
                 QMessageBox.information(self, 'Success', 'Report downloaded successfully!')
             except Exception as e:
                 QMessageBox.critical(self, 'Error', f'Failed to download report: {str(e)}')
-    
-    def closeEvent(self, event):
-        """Clean up resources on close"""
-        try:
-            # Close all matplotlib figures
-            if hasattr(self, 'histogram_chart'):
-                plt.close(self.histogram_chart.figure)
-            if hasattr(self, 'pie_chart'):
-                plt.close(self.pie_chart.figure)
-            if hasattr(self, 'scatter_chart'):
-                plt.close(self.scatter_chart.figure)
-        except:
-            pass
-        super().closeEvent(event)
 
 def main():
     """Main entry point"""
