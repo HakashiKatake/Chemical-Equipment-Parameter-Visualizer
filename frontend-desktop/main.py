@@ -203,56 +203,86 @@ class ChartWidget(QWidget):
         layout.addWidget(self.canvas)
         self.setLayout(layout)
     
+    def closeEvent(self, event):
+        """Clean up matplotlib resources on close"""
+        try:
+            if hasattr(self, 'figure'):
+                plt.close(self.figure)
+        except:
+            pass
+        super().closeEvent(event)
+    
     def plot_histogram(self, histogram_data):
         """Plot flowrate histogram"""
-        self.figure.clear()
-        ax = self.figure.add_subplot(111)
-        
-        labels = histogram_data['bin_labels']
-        counts = histogram_data['counts']
-        unit = histogram_data['unit']
-        
-        ax.bar(range(len(labels)), counts, color='#3498db', edgecolor='black', linewidth=0.5)
-        ax.set_xticks(range(len(labels)))
-        ax.set_xticklabels(labels, rotation=45, ha='right')
-        ax.set_xlabel(f'Flowrate ({unit})')
-        ax.set_ylabel('Count')
-        ax.set_title('Flowrate Distribution', fontweight='bold')
-        ax.grid(axis='y', alpha=0.3)
-        
-        self.figure.tight_layout()
-        self.canvas.draw()
+        try:
+            if not self.canvas or not hasattr(self, 'figure'):
+                return
+            
+            self.figure.clear()
+            ax = self.figure.add_subplot(111)
+            
+            labels = histogram_data['bin_labels']
+            counts = histogram_data['counts']
+            unit = histogram_data['unit']
+            
+            ax.bar(range(len(labels)), counts, color='#3498db', edgecolor='black', linewidth=0.5)
+            ax.set_xticks(range(len(labels)))
+            ax.set_xticklabels(labels, rotation=45, ha='right')
+            ax.set_xlabel(f'Flowrate ({unit})')
+            ax.set_ylabel('Count')
+            ax.set_title('Flowrate Distribution', fontweight='bold')
+            ax.grid(axis='y', alpha=0.3)
+            
+            self.figure.tight_layout()
+            self.canvas.draw_idle()
+        except RuntimeError:
+            # Canvas has been deleted, ignore
+            pass
     
     def plot_pie(self, type_distribution):
         """Plot type distribution pie chart"""
-        self.figure.clear()
-        ax = self.figure.add_subplot(111)
-        
-        types = list(type_distribution.keys())
-        counts = list(type_distribution.values())
-        
-        ax.pie(counts, labels=types, autopct='%1.1f%%', startangle=90)
-        ax.set_title('Equipment Type Distribution', fontweight='bold')
-        
-        self.figure.tight_layout()
-        self.canvas.draw()
+        try:
+            if not self.canvas or not hasattr(self, 'figure'):
+                return
+            
+            self.figure.clear()
+            ax = self.figure.add_subplot(111)
+            
+            types = list(type_distribution.keys())
+            counts = list(type_distribution.values())
+            
+            ax.pie(counts, labels=types, autopct='%1.1f%%', startangle=90)
+            ax.set_title('Equipment Type Distribution', fontweight='bold')
+            
+            self.figure.tight_layout()
+            self.canvas.draw_idle()
+        except RuntimeError:
+            # Canvas has been deleted, ignore
+            pass
     
     def plot_scatter(self, scatter_data, units):
         """Plot pressure vs temperature scatter"""
-        self.figure.clear()
-        ax = self.figure.add_subplot(111)
-        
-        x_vals = [point['x'] for point in scatter_data]
-        y_vals = [point['y'] for point in scatter_data]
-        
-        ax.scatter(x_vals, y_vals, alpha=0.6, c='#e74c3c', s=100, edgecolors='black', linewidth=0.5)
-        ax.set_xlabel(f"Pressure ({units['pressure']})")
-        ax.set_ylabel(f"Temperature ({units['temperature']})")
-        ax.set_title('Pressure vs Temperature', fontweight='bold')
-        ax.grid(True, alpha=0.3)
-        
-        self.figure.tight_layout()
-        self.canvas.draw()
+        try:
+            if not self.canvas or not hasattr(self, 'figure'):
+                return
+            
+            self.figure.clear()
+            ax = self.figure.add_subplot(111)
+            
+            x_vals = [point['x'] for point in scatter_data]
+            y_vals = [point['y'] for point in scatter_data]
+            
+            ax.scatter(x_vals, y_vals, alpha=0.6, c='#e74c3c', s=100, edgecolors='black', linewidth=0.5)
+            ax.set_xlabel(f"Pressure ({units['pressure']})")
+            ax.set_ylabel(f"Temperature ({units['temperature']})")
+            ax.set_title('Pressure vs Temperature', fontweight='bold')
+            ax.grid(True, alpha=0.3)
+            
+            self.figure.tight_layout()
+            self.canvas.draw_idle()
+        except RuntimeError:
+            # Canvas has been deleted, ignore
+            pass
 
 
 class MainWindow(QMainWindow):
@@ -655,7 +685,20 @@ Range: {summary['min_temperature']:.2f} - {summary['max_temperature']:.2f}
                 QMessageBox.information(self, 'Success', 'Report downloaded successfully!')
             except Exception as e:
                 QMessageBox.critical(self, 'Error', f'Failed to download report: {str(e)}')
-
+    
+    def closeEvent(self, event):
+        """Clean up resources on close"""
+        try:
+            # Close all matplotlib figures
+            if hasattr(self, 'histogram_chart'):
+                plt.close(self.histogram_chart.figure)
+            if hasattr(self, 'pie_chart'):
+                plt.close(self.pie_chart.figure)
+            if hasattr(self, 'scatter_chart'):
+                plt.close(self.scatter_chart.figure)
+        except:
+            pass
+        super().closeEvent(event)
 
 def main():
     """Main entry point"""
