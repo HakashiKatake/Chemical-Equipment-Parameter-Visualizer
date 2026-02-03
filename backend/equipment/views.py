@@ -2,13 +2,14 @@
 API Views for Chemical Equipment Parameter Visualizer
 """
 from rest_framework import viewsets, status, views
-from rest_framework.decorators import action
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from django.db import transaction
+from django.http import JsonResponse
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from .models import Dataset, Equipment
@@ -19,6 +20,19 @@ from .serializers import (
 from .csv_normalizer import CSVNormalizer, CSVValidationError
 from .analytics import compute_analytics
 from .reports import generate_pdf_report
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def health_check(request):
+    """
+    Health check endpoint for monitoring and keeping the service alive.
+    Returns 200 OK with a simple status message.
+    """
+    return JsonResponse({
+        'status': 'ok',
+        'message': 'Equipment Visualizer API is running'
+    })
 
 
 class AuthViewSet(viewsets.ViewSet):
