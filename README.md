@@ -2,12 +2,15 @@
 
 A hybrid **Web + Desktop** application for visualizing chemical equipment parameters from CSV data.
 
+**🚀 Live Demo**: https://hakashikatake-equipment-visualizer.hf.space/api/docs/
+
 ## Architecture
 
 - **Backend**: Django + Django REST Framework (shared by both clients)
 - **Web Frontend**: React + Chart.js
 - **Desktop Frontend**: PyQt5 + Matplotlib
-- **Database**: SQLite
+- **Database**: SQLite (development) / PostgreSQL (production)
+- **Deployment**: Hugging Face Spaces (backend) + Vercel (frontend)
 
 ## Key Features
 
@@ -18,7 +21,9 @@ A hybrid **Web + Desktop** application for visualizing chemical equipment parame
 ✅ **Interactive Charts** - Histogram, scatter plots, type distributions  
 ✅ **PDF Reports** - Server-generated reports with charts and statistics  
 ✅ **Data Table** - Sortable, filterable equipment data  
-✅ **OpenAPI Docs** - Auto-generated API documentation
+✅ **OpenAPI Docs** - Auto-generated API documentation  
+✅ **Health Check** - Monitoring endpoint for uptime services  
+✅ **Production Ready** - Docker deployment with PostgreSQL support
 
 ## Project Structure
 
@@ -31,7 +36,9 @@ wba/
 │   │   ├── views.py        # API views
 │   │   ├── csv_normalizer.py  # CSV validation & normalization
 │   │   ├── analytics.py    # Analytics engine
-│   │   ├── reports.py      # PDF generation
+│   │   Dockerfile          # Docker configuration
+│   ├── README.md           # HF Space metadata
+│   ├── ├── reports.py      # PDF generation
 │   │   └── serializers.py  # DRF serializers
 │   ├── manage.py
 │   └── requirements.txt
@@ -48,6 +55,8 @@ wba/
 │   ├── main.py            # Main application
 │   ├── api_client.py      # API client
 │   └── requirements.txt
+├── DEPLOYMENT.md          # Detailed deployment guide
+├── DEPLOYMENT_CHECKLIST.md # Quick deployment checklist
 │
 ├── sample_equipment_data.csv  # Sample data
 └── README.md              # This file
@@ -71,7 +80,14 @@ python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # Install dependencies
-pip install -r requirements.txt
+piCreate .env file (optional for development)
+cat > config/.env << EOF
+SECRET_KEY=your-secret-key-here
+DEBUG=True
+DATABASE_URL=sqlite:///db.sqlite3
+ALLOWED_HOSTS=localhost,127.0.0.1
+CORS_ALLOWED_ORIGINS=http://localhost:3000
+EOF
 
 # Run migrations
 python manage.py makemigrations
@@ -85,6 +101,9 @@ python manage.py runserver
 ```
 
 Backend will run at: `http://localhost:8000`
+
+API Documentation: `http://localhost:8000/api/docs/`  
+Health Check: `http://localhost:8000/api/v1/health
 
 API Documentation: `http://localhost:8000/api/docs/`
 
@@ -171,6 +190,9 @@ The backend implements a strict normalization layer:
 
 ## API Endpoints
 
+
+### Health & Monitoring
+- `GET /api/v1/health/` - Health check endpoint (no auth required)
 ### Authentication
 - `POST /api/v1/auth/login/` - Login
 - `POST /api/v1/auth/register/` - Register
@@ -245,19 +267,114 @@ python manage.py test equipment
 ## Database Management
 
 ### Dataset Limit
-- System automatically maintains last 5 datasets per user
-- Oldest dataset is deleted when 6th is uploaded
-- Cascading delete removes associated equipment records
 
-### Admin Interface
+This application is production-ready and can be deployed to:
+- **Backend**: Hugging Face Spaces (Docker)
+- **Frontend**: Vercel
+- **Database**: Neon PostgreSQL
 
-Access Django admin at: `http://localhost:8000/admin/`
+### Quick Deployment
 
-- View all datasets
-- View equipment records
-- Manage users
+**Backend to Hugging Face:**
+```bash
+# Add HF Space as remote
+git remote add hf https://huggingface.co/spaces/YOUR-USERNAME/equipment-visualizer-api
 
-## Production Deployment Notes
+# Deploy backend folder only
+git subtree split --prefix backend -b backend-deploy
+git push hf backend-deploy:main --force
+git branch -D backend-deploy
+```
+
+**Frontend to Vercel:**
+```bash
+cd frontend-web
+
+# Update .env.production with your backend URL
+echo "REACT_APP_API_URL=https://YOUR-USERNAME-equipment-visualizer-api.hf.space/api/v1" > .env.production
+
+# Deploy
+npm install .7
+- Django REST Framework 3.14.0
+- pandas 2.1.3
+- matplotlib 3.8.2
+- reportlab 4.0.7
+- drf-spectacular 0.27.0 (OpenAPI)
+- gunicorn 25.0.1 (production)
+- whitenoise 6.11.0 (static files)
+- psycopg2-binary 2.9.11 (PostgreSQL)
+- dj-database-url 3.1.0
+
+### Web Frontend
+- React 18
+- Chart.js 4
+- axios
+- react-router-dom
+
+### Desktop Frontend
+- PyQt5 5.15.10
+- matplotlib 3.10.8
+- requests 2.32.5
+
+### Infrastructure
+- Docker (containerization)
+- Hugging Face Spaces (backend hosting)
+- Vercel (frontend hosting)
+- Neon (PostgreSQL hosting)
+- cron-job.org (uptime monitoring)
+python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())"
+```
+
+### Keep Backend Alive (Important!)
+
+Hugging Face Spaces sleep after inactivity. Use **cron-job.org** to keep it alive:
+
+1. Go to https for Development?
+- Simple setup for development
+- Zero configuration
+- Adequate for moderate usage
+- Easy to switch to PostgreSQL for production
+
+### Why PostgreSQL for Production?
+- Better concurrency handling
+- Robust backup and recovery
+- Scalable for large datasets
+- Industry standard for web applications
+
+### Why Hugging Face Spaces?
+- Free hosting for open-source projects
+- Docker support for full-stack apps
+- Easy deployment with git
+- Built-in SSL and CDN
+
+### Why Docker?
+- Consistent environment across dev/prod
+- Easy dependency management
+- Simplified deployment
+- Container isolation and security
+
+### Detailed Deployment Guide
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for comprehensive deployment instructions including:
+- Neon PostgreSQL setup
+
+### Production deployment issues
+- **HF Space not responding**: Check build logs in Space dashboard
+- **404 on all endpoints**: Verify `app_port: 7860` in backend/README.md
+- **Database connection failed**: Check DATABASE_URL environment variable
+- **CORS errors**: Update CORS_ALLOWED_ORIGINS with actual frontend URL
+- **Space goes to sleep**: Set up cron-job.org health check pings
+
+### Health check not working
+- Ensure backend is deployed with latest code
+- Visit `/api/v1/health/` (not `/health/`)
+- Check Space logs for errors
+- Verify endpoint returns: `{"status": "ok", "message": "Equipment Visualizer API is running"}`
+- Docker configuration
+- CI/CD pipeline setup
+- Troubleshooting guide
+
+Quick reference: [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md)
 
 Before deploying to production:
 
@@ -294,15 +411,47 @@ Before deploying to production:
 - requests
 
 ## Design Decisions
+Useful Links
 
-### Why Single Backend?
-- Consistency across clients
-- Single source of truth for analytics
-- Easier maintenance
-- Shared authentication & authorization
+### Development
+- Local API: `http://localhost:8000/api/v1/`
+- API Documentation: `http://localhost:8000/api/docs/`
+- Django Admin: `http://localhost:8000/admin/`
+- Health Check: `http://localhost:8000/api/v1/health/`
+- Web App: `http://localhost:3000`
 
-### Why Server-Side Analytics?
-- Consistency in calculations
+### Production
+- Backend API: `https://hakashikatake-equipment-visualizer.hf.space`
+- API Documentation: `https://hakashikatake-equipment-visualizer.hf.space/api/docs/`
+- Health Check: `https://hakashikatake-equipment-visualizer.hf.space/api/v1/health/`
+- Hugging Face Space: `https://huggingface.co/spaces/HakashiKatake/equipment-visualizer`
+
+### External Services
+- Neon Console: `https://console.neon.tech/`
+- Vercel Dashboard: `https://vercel.com/dashboard`
+- Cron Job Dashboard: `https://cron-job.org/en/members/jobs/`
+
+## Documentation
+
+- **README.md** (this file) - Overview and quick start
+- **DEPLOYMENT.md** - Comprehensive deployment guide
+- **DEPLOYMENT_CHECKLIST.md** - Quick deployment reference
+- **prompt.md** - Original project requirements
+
+## Support & Resources
+
+- **API Schema**: Interactive API documentation at `/api/docs/`
+- **OpenAPI Spec**: Raw OpenAPI schema at `/api/schema/`
+- **Django Admin**: Database management at `/admin/`
+- **Health Status**: Service health at `/api/v1/health/`
+
+## License
+
+This project is created for educational/evaluation purposes.
+
+---
+
+**Built with ❤️ using Django, React, and PyQt5**
 - Better performance for large datasets
 - Reduced client complexity
 - Easier to update algorithms
