@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { datasetAPI } from '../api';
 import DataTable from './DataTable';
 import Charts from './Charts';
@@ -9,11 +9,7 @@ function Analytics({ datasetId }) {
   const [error, setError] = useState('');
   const [downloading, setDownloading] = useState(false);
 
-  useEffect(() => {
-    fetchAnalytics();
-  }, [datasetId]);
-
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -25,7 +21,11 @@ function Analytics({ datasetId }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [datasetId]);
+
+  useEffect(() => {
+    fetchAnalytics();
+  }, [fetchAnalytics]);
 
   const handleDownloadReport = async () => {
     try {

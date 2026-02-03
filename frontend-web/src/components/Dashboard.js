@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { datasetAPI } from '../api';
 import DatasetList from './DatasetList';
 import UploadCSV from './UploadCSV';
@@ -10,11 +10,7 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    fetchDatasets();
-  }, []);
-
-  const fetchDatasets = async () => {
+  const fetchDatasets = useCallback(async () => {
     try {
       setLoading(true);
       const response = await datasetAPI.list();
@@ -32,7 +28,11 @@ function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [selectedDataset]);
+
+  useEffect(() => {
+    fetchDatasets();
+  }, [fetchDatasets]);
 
   const handleUploadSuccess = () => {
     fetchDatasets();
